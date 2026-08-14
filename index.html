@@ -714,16 +714,6 @@ footer .fmeta{border-top:1px solid rgba(255,255,255,.09);padding-top:18px;font-s
    ===================================================================== */
 var LEAD_ENDPOINT = '';
 
-/* =====================================================================
-   ② 구글 광고 전환 추적 설정
-   ---------------------------------------------------------------------
-   Google Ads → 목표 → 전환 → '리드 양식 제출' 전환 액션 생성 후
-   발급되는 전환 라벨을 아래에 넣어주세요.
-   형식 : 'AW-18336501245/전환라벨'
-   ※ 비워두면 전환 이벤트는 전송되지 않고, generate_lead 이벤트만 기록됩니다.
-   ===================================================================== */
-var AW_CONVERSION_SEND_TO = '';
-
 (function(){
   'use strict';
 
@@ -794,9 +784,9 @@ var AW_CONVERSION_SEND_TO = '';
     function complete(){
       if (typeof gtag === 'function') {
         gtag('event', 'generate_lead', { currency: 'KRW', value: 1, unit_type: type });
-        if (AW_CONVERSION_SEND_TO) {
-          gtag('event', 'conversion', { send_to: AW_CONVERSION_SEND_TO, value: 1.0, currency: 'KRW' });
-        }
+
+        // Event snippet for [260814]고덕제일풍경채 conversion page
+        gtag('event', 'conversion', {'send_to': 'AW-18336501245/khglCIimr-EcEP2bw6dE'});
       }
       wrap.style.display = 'none';
       done.style.display = 'block';
