@@ -609,6 +609,10 @@ footer .fmeta{border-top:1px solid rgba(255,255,255,.09);padding-top:18px;font-s
         <p class="fdesc">선호하는 동·호수는 한정되어 있습니다.<br>등록해주시면 분양 일정과 조건을 안내해 드립니다.</p>
 
         <form id="leadForm" novalidate>
+          <div aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden">
+            <label for="f-website">Website</label>
+            <input type="text" id="f-website" name="website" tabindex="-1" autocomplete="off">
+          </div>
           <div class="field">
             <label for="f-name">성함 <i>*</i></label>
             <input type="text" id="f-name" name="name" placeholder="성함을 입력해주세요" autocomplete="name" required>
@@ -710,9 +714,9 @@ footer .fmeta{border-top:1px solid rgba(255,255,255,.09);padding-top:18px;font-s
    [방법 B] Formspree 등 외부 폼 서비스
      발급받은 endpoint URL을 그대로 LEAD_ENDPOINT 에 넣으면 됩니다.
 
-   ※ 빈 문자열('')로 두면 전송은 되지 않고 완료 화면만 표시됩니다(테스트용).
+   ※ Apps Script 배포 후 발급된 /exec URL을 LEAD_ENDPOINT에 입력하세요.
    ===================================================================== */
-var LEAD_ENDPOINT = '';
+var LEAD_ENDPOINT = 'https://script.google.com/macros/s/AKfycbznZDG73JtnvngsS6lN9fy-yTx1JVU-lsf4Hhuj7ta9TmXfW1Efp5tNCpBPzzli89DE/exec';
 
 (function(){
   'use strict';
@@ -765,6 +769,7 @@ var LEAD_ENDPOINT = '';
     var tel   = phone.value.trim();
     var agree = document.getElementById('f-agree').checked;
     var memo  = document.getElementById('f-memo').value.trim();
+    var website = document.getElementById('f-website').value.trim();
     var type  = (document.querySelector('input[name="type"]:checked') || {}).value || '';
 
     if (name.length < 2)                     { showMsg('성함을 정확히 입력해주세요.', 'err'); return; }
@@ -777,6 +782,7 @@ var LEAD_ENDPOINT = '';
 
     var payload = {
       name: name, phone: tel, type: type, memo: memo,
+      website: website,
       page: location.href,
       submittedAt: new Date().toISOString()
     };
@@ -793,8 +799,10 @@ var LEAD_ENDPOINT = '';
       done.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
-    if (!LEAD_ENDPOINT) {   /* 엔드포인트 미설정 — 테스트 모드 */
-      setTimeout(complete, 400);
+    if (!LEAD_ENDPOINT || LEAD_ENDPOINT.indexOf('PASTE_') === 0) {
+      btn.disabled = false;
+      btn.textContent = '관심고객 등록하기';
+      showMsg('접수 시스템 준비 중입니다. 잠시 후 다시 시도해주세요.', 'err');
       return;
     }
 
