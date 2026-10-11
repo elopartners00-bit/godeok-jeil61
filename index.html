@@ -311,6 +311,62 @@ footer .fmeta{border-top:1px solid rgba(255,255,255,.09);padding-top:18px;font-s
   table{font-size:14px}
 }
 </style>
+<!-- 중복 번호 차단 (2026-10-11): 이 기기에서 이미 신청한 번호는 다시 보내지 않는다. 시트 쪽 Apps Script 도 같은 번호를 한 번 더 막는다 -->
+<script>
+(function () {
+  var KEY = 'lp-sent-phones';
+  var MSG = '이미 상담 신청이 접수된 번호입니다. 담당자가 곧 연락드리겠습니다.';
+  function digits(v) { return String(v || '').replace(/\D/g, ''); }
+  function load() { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (e) { return []; } }
+  function store(a) { try { localStorage.setItem(KEY, JSON.stringify(a.slice(-20))); } catch (e) {} }
+  function sent(p) { return p.length >= 10 && load().indexOf(p) >= 0; }
+  function add(p) { var a = load(); if (a.indexOf(p) < 0) { a.push(p); store(a); } }
+  function drop(p) { store(load().filter(function (x) { return x !== p; })); }
+
+  // 1) 폼 제출 직전에 막고 안내
+  document.addEventListener('submit', function (e) {
+    var f = e.target;
+    var el = f && f.querySelector && f.querySelector('input[type=tel],input[name=phone],input[name=tel]');
+    if (el && sent(digits(el.value))) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      alert(MSG);
+    }
+  }, true);
+
+  // 2) 시트로 보내는 요청에서 번호를 기억하고, 이미 보낸 번호면 보내지 않는다
+  function phoneOf(body) {
+    try {
+      if (!body) return '';
+      if (typeof body === 'string') {
+        if (body.charAt(0) === '{') { var j = JSON.parse(body); return digits(j.phone || j.tel); }
+        var q = new URLSearchParams(body); return digits(q.get('phone') || q.get('tel'));
+      }
+      if (typeof body.get === 'function') return digits(body.get('phone') || body.get('tel'));
+    } catch (e) {}
+    return '';
+  }
+  if (window.fetch) {
+    var orig = window.fetch;
+    window.fetch = function (u, o) {
+      var url = String((u && u.url) || u || '');
+      if (/script\.google\.com\/macros/.test(url) && o && String(o.method || '').toUpperCase() === 'POST') {
+        var p = phoneOf(o.body);
+        if (p.length >= 10) {
+          if (sent(p)) {
+            return Promise.resolve(new Response('{"ok":true,"duplicate":true}', { status: 200, headers: { 'Content-Type': 'application/json' } }));
+          }
+          add(p);
+          var r = orig.apply(this, arguments);
+          r.catch(function () { drop(p); });
+          return r;
+        }
+      }
+      return orig.apply(this, arguments);
+    };
+  }
+})();
+</script>
 </head>
 <body>
 
